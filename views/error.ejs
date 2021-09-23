@@ -1,0 +1,10 @@
+<% layout('layouts/boilerplate') %> <!--This injects our content into our boilerpoint.ejs layout. This allows us to only have to update one file when we want to add content-->
+<!-- Error page to display when an error displays. -->
+<div class="row">
+    <div class="col-6 offset-3">
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading"><%= err.message %> </h4>
+            <p><%= err.stack %> </p>
+        </div>
+    </div>
+</div>
