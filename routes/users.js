@@ -35,7 +35,7 @@ router.get('/login', (req, res) => {
 // POST login with passport.authenticate to check local creditials. Will flash a failure message, and redirect if failure.
 router.post('/login', passport.authenticate('local', {failureFlash: true, failureRedirect: '/login'}), (req, res) => {
     req.flash('success', 'Welcome back');
-    const redirectUrl = req.session[returnTo] || '/campgrounds';
+    const redirectUrl = req.session.returnTo || '/campgrounds';
     res.redirect(redirectUrl);
 });
 
