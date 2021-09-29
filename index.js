@@ -1,3 +1,8 @@
+// Setting env file while not in production. It will store the data into process
+if(process.env.NODE_ENV !== "production") {
+    require('dotenv').config();
+}
+
 // Requires
 const express = require('express');
 const path = require('path');
@@ -9,7 +14,8 @@ const ExpressError = require('./utils/ExpressError');
 const methodOverride = require('method-override');
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
-const User = require('./models/user')
+const User = require('./models/user');
+const {isLoggedIn} = require('./middleware');
 
 // routes
 const campgroundRoutes = require('./routes/campgrounds');
@@ -70,12 +76,6 @@ app.use((req, res, next) => {
     res.locals.error = req.flash('error');
     next();
 })
-
-// app.get('/fakeUser', async (req, res) => {
-//     const user = new User({email: 'coltttt@gmail.com', username: 'colttt'});
-//     const newUser = await User.register(user, 'password'); // User.register will call a new method for passport to automatically register the user.
-//     res.send(newUser);
-// })
 
 // routes set up.
 app.use('/campgrounds', campgroundRoutes);
