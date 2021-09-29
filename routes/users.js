@@ -4,45 +4,20 @@ const passport = require('passport');
 
 const catchAsync = require('../utils/catchAsync');
 const User = require('../models/user');
+const users = require('../controllers/users');
+const {isLoggedIn} = require('../middleware');
 
-// GET register form
-router.get('/register', (req, res) => {
-    res.render('users/register');
-});
+// Register Routes
+router.route('/register')
+    .get(users.renderRegisterForm)
+    .post(catchAsync(users.createNewUser))
 
-// POST register new user and save their info in DB
-router.post('/register', catchAsync(async (req, res, next) => {
-    try {
-        const {email, username, password} = req.body;
-        const user = new User({ email, username });
-        const registeredUser = await User.register(user, password);
-        req.login(registeredUser, err => {
-            if(err) return next();
-            req.flash('success', 'Welcome to Yelp Camp!');
-            res.redirect('/campgrounds');
-        });
-    } catch(e) {
-        req.flash('error', e.message);
-        res.redirect('/register')
-    }
-}));
+// Login Routes
+router.route('/login')
+    .get(users.renderLoginForm)
+    .post(passport.authenticate('local', {failureFlash: true, failureRedirect: '/login'}), users.submitLogin)
 
-// GET login form
-router.get('/login', (req, res) => {
-    res.render('users/login');
-});
-
-// POST login with passport.authenticate to check local creditials. Will flash a failure message, and redirect if failure.
-router.post('/login', passport.authenticate('local', {failureFlash: true, failureRedirect: '/login'}), (req, res) => {
-    req.flash('success', 'Welcome back');
-    const redirectUrl = req.session.returnTo || '/campgrounds';
-    res.redirect(redirectUrl);
-});
-
-router.get('/logout', (req, res) => {
-    req.logOut(); // how to logout with passport (built in method)
-    req.flash('success', 'Goodbye!');
-    res.redirect('/campgrounds');
-})
+// Logout Route
+router.get('/logout', users.submitLogout)
 
 module.exports = router;
