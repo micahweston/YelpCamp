@@ -20,7 +20,7 @@ router.get('/new', isLoggedIn, campgrounds.renderNewForm);
 // route by ID
 router.route('/:id')
     .get(catchAsync(campgrounds.readCampground))
-    .put(isLoggedIn, validateCampground, catchAsync(campgrounds.updateCampground))
+    .put(isLoggedIn, isAuthor, upload.array("image"), validateCampground, catchAsync(campgrounds.updateCampground))
     .delete(isLoggedIn, isAuthor, catchAsync(campgrounds.deleteCampground))
 
 // Edit route by ID
