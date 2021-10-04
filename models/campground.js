@@ -10,7 +10,10 @@ const ImageSchema = new Schema({
 // This is storing a virtual property to give us our thumbnail using the URL stored.
 ImageSchema.virtual('thumbnail').get(function() {
     return this.url.replace('/upload', '/upload/w_200,h_200');
-})
+});
+
+// This will make sure that JSON will include virtuals when we use toJSON like in the index.ejs page.
+const opts = { toJSON: {virtuals: true } };
 
 const CampgroundSchema = new Schema({
     title: String,
@@ -39,6 +42,12 @@ const CampgroundSchema = new Schema({
             ref: 'Review'
         }
     ]
+}, opts);
+
+CampgroundSchema.virtual('properties.popUpMarkup').get(function() {
+    return `
+    <strong><a href="/campgrounds/${this._id}">${this.title}</a></strong>
+    <p>${this.description.substring(0, 20)}...</p>`;
 });
 
 // DELETE ALL ASSOCIATED REVIEWS TO THE CAMPGROUND (QUERY MIDDLEWARE)

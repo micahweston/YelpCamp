@@ -11,11 +11,13 @@ const ejsMate = require('ejs-mate');
 const session = require('express-session');
 const flash = require('connect-flash');
 const ExpressError = require('./utils/ExpressError');
-const methodOverride = require('method-override');
+const methodOverride = require('method-override'); //used for method override on .GET and POST.
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
 const User = require('./models/user');
 const {isLoggedIn} = require('./middleware');
+
+const mongoSantize = require('express-mongo-sanitize');
 
 // routes
 const campgroundRoutes = require('./routes/campgrounds');
@@ -42,6 +44,9 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({extended: true}));
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Use express-mongo-santize to make sure no-sql injections are caught.
+app.use(mongoSantize());
 
 const sessionConfig = {
     secret: 'thisshouldbeabettersecret',
