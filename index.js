@@ -9,13 +9,14 @@ const path = require('path');
 const mongoose = require('mongoose');
 const ejsMate = require('ejs-mate');
 const session = require('express-session');
+const MongoDBStore = require("connect-mongo");
 const flash = require('connect-flash');
 const ExpressError = require('./utils/ExpressError');
 const methodOverride = require('method-override'); //used for method override on .GET and POST.
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
 const User = require('./models/user');
-const {isLoggedIn} = require('./middleware');
+const helmet = require('helmet');
 
 const mongoSantize = require('express-mongo-sanitize');
 
@@ -24,8 +25,11 @@ const campgroundRoutes = require('./routes/campgrounds');
 const reviewRoutes = require('./routes/reviews');
 const userRouters = require('./routes/users');
 
+
+const dbUrl = process.env.DB_URL || 'mongodb://localhost:27017/yelp-camp'; // change to this one for deployment.
 // MongoDB connection through Mongoose
-mongoose.connect('mongodb://localhost:27017/yelp-camp', {});
+// 'mongodb://localhost:27017/yelp-camp'
+mongoose.connect(dbUrl, {});
 
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "connection error:"));
@@ -46,15 +50,32 @@ app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Use express-mongo-santize to make sure no-sql injections are caught.
-app.use(mongoSantize());
+app.use(mongoSantize({
+    replaceWith: '_'
+}));
+
+const secret = process.env.SECRET || 'thisshouldbeabettersecret';
+
+const store = MongoDBStore.create({
+    mongoUrl: dbUrl,
+    secret,
+    touchAfter: 24 * 60 * 60
+});
+
+store.on('error', function(e) {
+    console.log('Session Store Error', e)
+})
 
 const sessionConfig = {
-    secret: 'thisshouldbeabettersecret',
+    store, // passes our store variable as our store to store our session info on Mongo
+    name: 'session', // changes the default name of our session cookie
+    secret,
     resave: false,
     saveUninitialized: true,
     // This is setting cookie settings. See docs for questions. 
     cookie: {
-        httpOnly: true,
+        // secure: true, // This only works when we deploy and makes sure that things can only be configured over a secure connection (HTTPS). Add this back in when going live.
+        httpOnly: true, // makes it so someone can not see our sessions cookies
         expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
         maxAge: 1000 * 60 * 60 * 24 * 7,
     }
@@ -63,6 +84,55 @@ const sessionConfig = {
 // app.use for session and flash()
 app.use(session(sessionConfig));
 app.use(flash());
+// Helmet setup to make sure URLs will run from sites used. If we change anything in the app we need to add this.
+app.use(helmet());
+
+const scriptSrcUrls = [
+    "https://stackpath.bootstrapcdn.com/",
+    "https://api.tiles.mapbox.com/",
+    "https://api.mapbox.com/",
+    "https://kit.fontawesome.com/",
+    "https://code.jquery.com/",
+    "https://cdnjs.cloudflare.com/",
+    "https://cdn.jsdelivr.net/",
+];
+const styleSrcUrls = [
+    "https://kit-free.fontawesome.com/",
+    "https://stackpath.bootstrapcdn.com",
+    "https://api.mapbox.com/",
+    "https://api.tiles.mapbox.com/",
+    "https://fonts.googleapis.com/",
+    "https://use.fontawesome.com/",
+    "https://cdn.jsdelivr.net/",
+];
+const connectSrcUrls = [
+    "https://api.mapbox.com/",
+    "https://a.tiles.mapbox.com/",
+    "https://b.tiles.mapbox.com/",
+    "https://events.mapbox.com/",
+];
+const fontSrcUrls = [];
+app.use(
+    helmet.contentSecurityPolicy({
+        directives: {
+            defaultSrc: [],
+            connectSrc: ["'self'", ...connectSrcUrls],
+            scriptSrc: ["'unsafe-inline'", "'self'", ...scriptSrcUrls],
+            styleSrc: ["'self'", "'unsafe-inline'", ...styleSrcUrls],
+            workerSrc: ["'self'", "blob:"],
+            childSrc: ["blob:"],
+            objectSrc: [],
+            imgSrc: [
+                "'self'",
+                "blob:",
+                "data:",
+                "https://res.cloudinary.com/dhupzqyiq/",
+                "https://images.unsplash.com/",
+            ],
+            fontSrc: ["'self'", ...fontSrcUrls],
+        },
+    })
+);
 
 // Passport 
 app.use(passport.initialize());
